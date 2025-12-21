@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Order Status WebSocket Test</title>
+</head>
+<body>
+    <h1>Order Execution WebSocket Test</h1>
+    <button id="createOrder">Create Order & Watch Status</button>
+    <div id="status" style="margin-top: 20px; font-family: monospace;"></div>
+
+    <script>
+        const statusDiv = document.getElementById('status');
+
+        document.getElementById('createOrder').addEventListener('click', async () => {
+            statusDiv.innerHTML = '📤 Creating order...<br>';
+
+            // Step 1: Create order
+            const response = await fetch('http://localhost:3000/api/orders/execute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    tokenIn: 'So11111111111111111111111111111111111111112',
+                    tokenOut: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+                    amountIn: 1.5,
+                    slippage: 0.01
+                })
+            });
+
+            const data = await response.json();
+            statusDiv.innerHTML += `✅ Order created: ${data.orderId}<br><br>`;
+            statusDiv.innerHTML += '🔌 Connecting to WebSocket...<br><br>';
+
+            // Step 2: Connect to WebSocket
+            const ws = new WebSocket(`ws://localhost:3000/api/orders/status/${data.orderId}`);
+
+            ws.onopen = () => {
+                statusDiv.innerHTML += '✅ WebSocket connected<br><br>';
+            };
+
+            ws.onmessage = (event) => {
+                const update = JSON.parse(event.data);
+                const time = new Date(update.timestamp).toLocaleTimeString();
+                
+                statusDiv.innerHTML += `[${time}] Status: <strong>${update.status.toUpperCase()}</strong><br>`;
+                
+                if (update.message) {
+                    statusDiv.innerHTML += `   Message: ${update.message}<br>`;
+                }
+                
+                if (update.dex) {
+                    statusDiv.innerHTML += `   DEX: ${update.dex}<br>`;
+                }
+                
+                if (update.txHash) {
+                    statusDiv.innerHTML += `   TX Hash: ${update.txHash}<br>`;
+                }
+                
+                if (update.executedPrice) {
+                    statusDiv.innerHTML += `   Executed Price: $${update.executedPrice.toFixed(2)}<br>`;
+                }
+                
+                statusDiv.innerHTML += '<br>';
+
+                // Close connection after confirmed or failed
+                if (update.status === 'confirmed' || update.status === 'failed') {
+                    setTimeout(() => ws.close(), 1000);
+                }
+            };
+
+            ws.onerror = (error) => {
+                statusDiv.innerHTML += `❌ WebSocket error: ${error}<br>`;
+            };
+
+            ws.onclose = () => {
+                statusDiv.innerHTML += '🔌 WebSocket closed<br>';
+            };
+        });
+    </script>
+</body>
+</html>
