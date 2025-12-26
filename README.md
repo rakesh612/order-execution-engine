@@ -162,7 +162,7 @@ RETRY_DELAY_MS=1000
 
 ## 🎥 Demo Video
 
-See the complete walkthrough: [YouTube Link](https://youtu.be/your-video-id)
+See the complete walkthrough: [YouTube Link](https://www.youtube.com/watch?v=Osb61c14Y-8)
 
 Demonstrates:
 - Order flow through the system
